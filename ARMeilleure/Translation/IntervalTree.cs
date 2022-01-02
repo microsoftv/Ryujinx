@@ -74,7 +74,13 @@ namespace ARMeilleure.Translation
                 throw new ArgumentNullException(nameof(value));
             }
 
-            return BSTInsert(start, end, value, updateFactoryCallback, out IntervalTreeNode<K, V> node);
+            bool added = BSTInsert(start, end, value, updateFactoryCallback, out IntervalTreeNode<K, V> node);
+            if (!added)
+            {
+                return false;
+            }
+            RestoreBalanceAfterInsertion(node);
+            return true;
         }
 
         /// <summary>
@@ -92,7 +98,11 @@ namespace ARMeilleure.Translation
                 throw new ArgumentNullException(nameof(value));
             }
 
-            BSTInsert(start, end, value, null, out IntervalTreeNode<K, V> node);
+            bool added = BSTInsert(start, end, value, null, out IntervalTreeNode<K, V> node);
+            if (added)
+            {
+                RestoreBalanceAfterInsertion(node);
+            }
             return node.Value;
         }
 
