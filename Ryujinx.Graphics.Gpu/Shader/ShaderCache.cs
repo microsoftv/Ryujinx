@@ -37,6 +37,8 @@ namespace Ryujinx.Graphics.Gpu.Shader
 
         private Queue<(IProgram, Action<byte[]>)> _programsToSaveQueue;
 
+        private readonly ShaderCacheHashTable _graphicsShaderCache = new ShaderCacheHashTable();
+
         /// <summary>
         /// Version of the codegen (to be changed when codegen or guest format change).
         /// </summary>
@@ -694,6 +696,11 @@ namespace Ryujinx.Graphics.Gpu.Shader
                 }
             }
 
+            if (_graphicsShaderCache.TryFind(channel.MemoryManager, addresses, out ShaderBundle bundle))
+            {
+                return bundle;
+            }
+
             TranslatorContext[] shaderContexts = new TranslatorContext[Constants.ShaderStages + 1];
 
             TransformFeedbackDescriptor[] tfd = GetTransformFeedbackDescriptors(ref state);
@@ -794,6 +801,8 @@ namespace Ryujinx.Graphics.Gpu.Shader
                     }
                 }
             }
+
+            _graphicsShaderCache.Add(gpShaders);
 
             if (!isCached)
             {
