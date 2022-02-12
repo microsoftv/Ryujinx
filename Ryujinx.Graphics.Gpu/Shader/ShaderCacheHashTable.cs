@@ -3,7 +3,6 @@ using Ryujinx.Graphics.Gpu.Memory;
 using Ryujinx.Graphics.Shader;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
 
 namespace Ryujinx.Graphics.Gpu.Shader
 {
@@ -125,7 +124,7 @@ namespace Ryujinx.Graphics.Gpu.Shader
                 }
             }
 
-            System.Console.WriteLine($"ids {idTable.VertexBId} {idTable.GeometryId} {idTable.FragmentId} total {_shaderPrograms.Count}");
+            // System.Console.WriteLine($"ids {idTable.VertexBId} {idTable.GeometryId} {idTable.FragmentId} total {_shaderPrograms.Count}");
 
             _shaderPrograms.Add(idTable, shaderBundle);
         }
