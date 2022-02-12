@@ -197,6 +197,8 @@ namespace Ryujinx.Graphics.GAL.Multithreading
                 SetPrimitiveTopologyCommand.Run(ref GetCommand<SetPrimitiveTopologyCommand>(memory), threaded, renderer);
             _lookup[(int)CommandType.SetProgram] = (Span<byte> memory, ThreadedRenderer threaded, IRenderer renderer) =>
                 SetProgramCommand.Run(ref GetCommand<SetProgramCommand>(memory), threaded, renderer);
+            _lookup[(int)CommandType.SetProgramSeparate] = (Span<byte> memory, ThreadedRenderer threaded, IRenderer renderer) =>
+                SetProgramSeparateCommand.Run(ref GetCommand<SetProgramSeparateCommand>(memory), threaded, renderer);
             _lookup[(int)CommandType.SetRasterizerDiscard] = (Span<byte> memory, ThreadedRenderer threaded, IRenderer renderer) =>
                 SetRasterizerDiscardCommand.Run(ref GetCommand<SetRasterizerDiscardCommand>(memory), threaded, renderer);
             _lookup[(int)CommandType.SetRenderTargetColorMasks] = (Span<byte> memory, ThreadedRenderer threaded, IRenderer renderer) =>

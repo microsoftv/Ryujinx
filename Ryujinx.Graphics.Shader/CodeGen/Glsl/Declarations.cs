@@ -138,6 +138,14 @@ namespace Ryujinx.Graphics.Shader.CodeGen.Glsl
                     }
                     else
                     {
+                        context.AppendLine($"in gl_PerVertex");
+                        context.EnterScope();
+                        context.AppendLine("vec4 gl_Position;");
+                        context.AppendLine("float gl_PointSize;");
+                        context.AppendLine("float gl_ClipDistance[];");
+                        context.LeaveScope(" gl_in[];");
+                        context.AppendLine();
+
                         string outPrimitive = context.Config.OutputTopology.ToGlslString();
 
                         int maxOutputVertices = context.Config.MaxOutputVertices;
@@ -194,16 +202,41 @@ namespace Ryujinx.Graphics.Shader.CodeGen.Glsl
 
                 if (context.Config.Stage != ShaderStage.Compute &&
                     context.Config.Stage != ShaderStage.Fragment &&
-                    context.Config.TransformFeedbackEnabled)
+                    !context.Config.GpPassthrough)
                 {
-                    var tfOutput = context.GetTransformFeedbackOutput(AttributeConsts.PositionX);
-                    if (tfOutput.Valid)
+                    var tfPosition = context.GetTransformFeedbackOutput(AttributeConsts.PositionX);
+                    var tfPointSize = context.GetTransformFeedbackOutput(AttributeConsts.PointSize);
+                    var tfClipDistance = context.GetTransformFeedbackOutput(AttributeConsts.ClipDistance0);
+
+                    context.AppendLine("out gl_PerVertex");
+                    context.EnterScope();
+                    context.AppendLine($"{GetTfLayout(tfPosition)}vec4 gl_Position;");
+                    context.AppendLine($"{GetTfLayout(tfPointSize)}float gl_PointSize;");
+
+                    if (tfClipDistance.Valid)
                     {
-                        context.AppendLine($"layout (xfb_buffer = {tfOutput.Buffer}, xfb_offset = {tfOutput.Offset}, xfb_stride = {tfOutput.Stride}) out gl_PerVertex");
-                        context.EnterScope();
-                        context.AppendLine("vec4 gl_Position;");
-                        context.LeaveScope(context.Config.Stage == ShaderStage.TessellationControl ? " gl_out[];" : ";");
+                        int clipDistanceCount = 1;
+
+                        for (; clipDistanceCount < 8; clipDistanceCount++)
+                        {
+                            if (!context.GetTransformFeedbackOutput(AttributeConsts.ClipDistance0 + clipDistanceCount).Valid)
+                            {
+                                break;
+                            }
+                        }
+
+                        context.AppendLine($"{GetTfLayout(tfClipDistance)}float gl_ClipDistance[{clipDistanceCount}];");
                     }
+                    else
+                    {
+                        context.AppendLine("float gl_ClipDistance[];");
+                    }
+
+                    context.LeaveScope(context.Config.Stage == ShaderStage.TessellationControl ? " gl_out[];" : ";");
+                }
+                else if (context.Config.Stage == ShaderStage.Fragment)
+                {
+                    context.AppendLine("in vec4 gl_FragCoord;");
                 }
             }
             else
@@ -309,6 +342,16 @@ namespace Ryujinx.Graphics.Shader.CodeGen.Glsl
             {
                 AppendHelperFunction(context, "Ryujinx.Graphics.Shader/CodeGen/Glsl/HelperFunctions/SwizzleAdd.glsl");
             }
+        }
+
+        private static string GetTfLayout(TransformFeedbackOutput tfOutput)
+        {
+            if (tfOutput.Valid)
+            {
+                return $"layout (xfb_buffer = {tfOutput.Buffer}, xfb_offset = {tfOutput.Offset}, xfb_stride = {tfOutput.Stride}) ";
+            }
+
+            return string.Empty;
         }
 
         public static void DeclareLocals(CodeGenContext context, StructuredFunction function)

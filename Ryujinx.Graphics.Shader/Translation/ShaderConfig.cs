@@ -494,7 +494,7 @@ namespace Ryujinx.Graphics.Shader.Translation
                 usedMask,
                 0,
                 UsedFeatures.HasFlag(FeatureFlags.CbIndexing),
-                _counts.IncrementUniformBuffersCount);
+                GpuAccessor.QueryBindingConstantBuffer);
         }
 
         public BufferDescriptor[] GetStorageBufferDescriptors()
@@ -510,14 +510,14 @@ namespace Ryujinx.Graphics.Shader.Translation
                 _usedStorageBuffers,
                 _usedStorageBuffersWrite,
                 true,
-                _counts.IncrementStorageBuffersCount);
+                GpuAccessor.QueryBindingStorageBuffer);
         }
 
         private static BufferDescriptor[] GetBufferDescriptors(
             int usedMask,
             int writtenMask,
             bool isArray,
-            Func<int> getBindingCallback)
+            Func<int, int> getBindingCallback)
         {
             var descriptors = new BufferDescriptor[BitOperations.PopCount((uint)usedMask)];
 
@@ -532,13 +532,13 @@ namespace Ryujinx.Graphics.Shader.Translation
                     // The next array entries also consumes bindings, even if they are unused.
                     for (int j = lastSlot + 1; j < slot; j++)
                     {
-                        getBindingCallback();
+                        getBindingCallback(j);
                     }
                 }
 
                 lastSlot = slot;
 
-                descriptors[i] = new BufferDescriptor(getBindingCallback(), slot);
+                descriptors[i] = new BufferDescriptor(getBindingCallback(slot), slot);
 
                 if ((writtenMask & (1 << slot)) != 0)
                 {
@@ -553,15 +553,15 @@ namespace Ryujinx.Graphics.Shader.Translation
 
         public TextureDescriptor[] GetTextureDescriptors()
         {
-            return _cachedTextureDescriptors ??= GetTextureOrImageDescriptors(_usedTextures, _counts.IncrementTexturesCount);
+            return _cachedTextureDescriptors ??= GetTextureOrImageDescriptors(_usedTextures, GpuAccessor.QueryBindingTexture);
         }
 
         public TextureDescriptor[] GetImageDescriptors()
         {
-            return _cachedImageDescriptors ??= GetTextureOrImageDescriptors(_usedImages, _counts.IncrementImagesCount);
+            return _cachedImageDescriptors ??= GetTextureOrImageDescriptors(_usedImages, GpuAccessor.QueryBindingImage);
         }
 
-        private static TextureDescriptor[] GetTextureOrImageDescriptors(Dictionary<TextureInfo, TextureMeta> dict, Func<int> getBindingCallback)
+        private static TextureDescriptor[] GetTextureOrImageDescriptors(Dictionary<TextureInfo, TextureMeta> dict, Func<int, int> getBindingCallback)
         {
             var descriptors = new TextureDescriptor[dict.Count];
 
@@ -571,7 +571,7 @@ namespace Ryujinx.Graphics.Shader.Translation
                 var info = kv.Key;
                 var meta = kv.Value;
 
-                int binding = getBindingCallback();
+                int binding = getBindingCallback(i);
 
                 descriptors[i] = new TextureDescriptor(binding, meta.Type, info.Format, info.CbufSlot, info.Handle);
                 descriptors[i].SetFlag(meta.UsageFlags);

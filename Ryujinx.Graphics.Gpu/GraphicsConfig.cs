@@ -48,5 +48,7 @@ namespace Ryujinx.Graphics.Gpu
         /// Enables or disables the shader cache.
         /// </summary>
         public static bool EnableShaderCache;
+
+        public static bool EnableSeparateShaders = true;
     }
 }

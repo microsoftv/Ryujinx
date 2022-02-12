@@ -80,6 +80,7 @@
         SetPrimitiveRestart,
         SetPrimitiveTopology,
         SetProgram,
+        SetProgramSeparate,
         SetRasterizerDiscard,
         SetRenderTargetColorMasks,
         SetRenderTargetScale,

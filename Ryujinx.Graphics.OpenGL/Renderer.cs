@@ -71,6 +71,11 @@ namespace Ryujinx.Graphics.OpenGL
             return new Program(shaders);
         }
 
+        public IProgram CreateProgramSeparate(ShaderStage stage, string code)
+        {
+            return new ProgramSeparate(stage, code);
+        }
+
         public ISampler CreateSampler(SamplerCreateInfo info)
         {
             return new Sampler(info);

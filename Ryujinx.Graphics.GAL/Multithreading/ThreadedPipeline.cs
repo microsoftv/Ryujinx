@@ -221,6 +221,12 @@ namespace Ryujinx.Graphics.GAL.Multithreading
             _renderer.QueueCommand();
         }
 
+        public void SetProgramSeparate(ShaderStage stage, IProgram program)
+        {
+            _renderer.New<SetProgramSeparateCommand>().Set(stage, Ref(program));
+            _renderer.QueueCommand();
+        }
+
         public void SetRasterizerDiscard(bool discard)
         {
             _renderer.New<SetRasterizerDiscardCommand>().Set(discard);

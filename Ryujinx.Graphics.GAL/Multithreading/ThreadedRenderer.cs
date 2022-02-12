@@ -280,6 +280,18 @@ namespace Ryujinx.Graphics.GAL.Multithreading
             return program;
         }
 
+        public IProgram CreateProgramSeparate(ShaderStage stage, string code)
+        {
+            var program = new ThreadedProgram(this);
+            SourceProgramRequest request = new SourceProgramRequest(program, stage, code);
+            Programs.Add(request);
+
+            New<CreateProgramCommand>().Set(Ref((IProgramRequest)request));
+            QueueCommand();
+
+            return program;
+        }
+
         public ISampler CreateSampler(SamplerCreateInfo info)
         {
             var sampler = new ThreadedSampler(this);

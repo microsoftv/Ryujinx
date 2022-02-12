@@ -29,6 +29,7 @@ namespace Ryujinx.Graphics.Gpu.Shader
 
         private readonly Dictionary<ulong, List<ShaderBundle>> _cpPrograms;
         private readonly Dictionary<ShaderAddresses, List<ShaderBundle>> _gpPrograms;
+        private readonly Dictionary<ulong, List<ShaderBundle>> _gpProgramsSeparate;
 
         private CacheManager _cacheManager;
 
@@ -61,6 +62,7 @@ namespace Ryujinx.Graphics.Gpu.Shader
 
             _cpPrograms = new Dictionary<ulong, List<ShaderBundle>>();
             _gpPrograms = new Dictionary<ShaderAddresses, List<ShaderBundle>>();
+            _gpProgramsSeparate = new Dictionary<ulong, List<ShaderBundle>>();
             _gpProgramsDiskCache = new Dictionary<Hash128, ShaderBundle>();
             _cpProgramsDiskCache = new Dictionary<Hash128, ShaderBundle>();
 
@@ -816,6 +818,74 @@ namespace Ryujinx.Graphics.Gpu.Shader
             return gpShaders;
         }
 
+        public ShaderBundle GetGraphicsShader(
+            ref ThreedClassState state,
+            GpuChannel channel,
+            GpuChannelState gcs,
+            ShaderStage stage,
+            ulong address,
+            ulong addressA = 0)
+        {
+            bool isCached = _gpProgramsSeparate.TryGetValue(address, out List<ShaderBundle> list);
+
+            if (isCached)
+            {
+                foreach (ShaderBundle cachedGpShaders in list)
+                {
+                    if (IsShaderEqualGraphics(channel, gcs, cachedGpShaders, address))
+                    {
+                        return cachedGpShaders;
+                    }
+                }
+            }
+
+            if (_graphicsShaderCache.TryFind(channel.MemoryManager, stage, address, addressA, out ShaderBundle bundle))
+            {
+                return bundle;
+            }
+
+            TranslatorContext[] shaderContexts = new TranslatorContext[1];
+
+            TransformFeedbackDescriptor[] tfd = GetTransformFeedbackDescriptors(ref state);
+
+            gcs.TransformFeedbackDescriptors = tfd;
+
+            TranslationCounts counts = new TranslationCounts();
+
+            GpuAccessorState gas = new GpuAccessorState(gcs);
+
+            if (addressA != 0)
+            {
+                shaderContexts[0] = DecodeGraphicsShader(channel, gas, counts, DefaultFlags | TranslationFlags.VertexA, ShaderStage.Vertex, addressA);
+            }
+            else
+            {
+                shaderContexts[0] = DecodeGraphicsShader(channel, gas, counts, DefaultFlags, stage, address);
+            }
+
+            // The shader isn't currently cached, translate it and compile it.
+            ShaderCodeHolder shader = TranslateShader(_dumper, channel.MemoryManager, shaderContexts, 0);
+
+            ShaderProgram program = shader.Program;
+
+            IProgram hostProgram = _context.Renderer.CreateProgramSeparate(stage, program.Code);
+
+            ShaderBundle gpShaders = new ShaderBundle(hostProgram, gas.SpecializationState, shader);
+
+            _graphicsShaderCache.Add(gpShaders);
+
+            if (!isCached)
+            {
+                list = new List<ShaderBundle>();
+
+                _gpProgramsSeparate.Add(address, list);
+            }
+
+            list.Add(gpShaders);
+
+            return gpShaders;
+        }
+
         /// <summary>
         /// Gets transform feedback state from the current GPU state.
         /// </summary>
@@ -859,6 +929,24 @@ namespace Ryujinx.Graphics.Gpu.Shader
             if (IsShaderEqual(channel.MemoryManager, cpShader.Shaders[0], gpuVa))
             {
                 return cpShader.SpecializationState.MatchesCompute(channel, channelState);
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Checks if compute shader code in memory is equal to the cached shader.
+        /// </summary>
+        /// <param name="channel">GPU channel using the shader</param>
+        /// <param name="channelState">GPU channel state to verify shader compatibility</param>
+        /// <param name="cpShader">Cached compute shader</param>
+        /// <param name="gpuVa">GPU virtual address of the shader code in memory</param>
+        /// <returns>True if the code is different, false otherwise</returns>
+        private static bool IsShaderEqualGraphics(GpuChannel channel, GpuChannelState channelState, ShaderBundle cpShader, ulong gpuVa)
+        {
+            if (IsShaderEqual(channel.MemoryManager, cpShader.Shaders[0], gpuVa))
+            {
+                return cpShader.SpecializationState.MatchesGraphics(channel, channelState);
             }
 
             return false;

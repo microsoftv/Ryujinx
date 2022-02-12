@@ -130,6 +130,30 @@ namespace Ryujinx.Graphics.Gpu.Shader
             _shaderPrograms.Add(idTable, shaderBundle);
         }
 
+        public bool TryFind(MemoryManager memoryManager, ShaderStage stage, ulong address, ulong addressA, out ShaderBundle shaderBundle)
+        {
+            IdTable idTable = new IdTable();
+
+            shaderBundle = null;
+            bool result = stage switch
+            {
+                ShaderStage.Vertex => TryGetId(_vertexBCache, memoryManager, address, out idTable.VertexBId) &&
+                    (addressA == 0 || TryGetId(_vertexACache, memoryManager, addressA, out idTable.VertexAId)),
+                ShaderStage.TessellationControl => TryGetId(_tessControlCache, memoryManager, address, out idTable.TessControlId),
+                ShaderStage.TessellationEvaluation => TryGetId(_tessEvaluationCache, memoryManager, address, out idTable.TessEvaluationId),
+                ShaderStage.Geometry => TryGetId(_geometryCache, memoryManager, address, out idTable.GeometryId),
+                ShaderStage.Fragment => TryGetId(_fragmentCache, memoryManager, address, out idTable.FragmentId),
+                _ => false
+            };
+
+            if (result)
+            {
+                return _shaderPrograms.TryGetValue(idTable, out shaderBundle);
+            }
+
+            return false;
+        }
+
         public bool TryFind(MemoryManager memoryManager, ShaderAddresses addresses, out ShaderBundle shaderBundle)
         {
             IdTable idTable = new IdTable();

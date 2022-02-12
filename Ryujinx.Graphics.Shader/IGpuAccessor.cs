@@ -16,6 +16,26 @@ namespace Ryujinx.Graphics.Shader
 
         ReadOnlySpan<ulong> GetCode(ulong address, int minimumSize);
 
+        int QueryBindingConstantBuffer(int index)
+        {
+            return index;
+        }
+
+        int QueryBindingStorageBuffer(int index)
+        {
+            return index;
+        }
+
+        int QueryBindingTexture(int index)
+        {
+            return index;
+        }
+
+        int QueryBindingImage(int index)
+        {
+            return index;
+        }
+
         int QueryComputeLocalSizeX()
         {
             return 1;

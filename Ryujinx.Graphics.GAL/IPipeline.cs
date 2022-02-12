@@ -1,3 +1,4 @@
+using Ryujinx.Graphics.Shader;
 using System;
 
 namespace Ryujinx.Graphics.GAL
@@ -69,6 +70,7 @@ namespace Ryujinx.Graphics.GAL
         void SetPrimitiveTopology(PrimitiveTopology topology);
 
         void SetProgram(IProgram program);
+        void SetProgramSeparate(ShaderStage stage, IProgram program);
 
         void SetRasterizerDiscard(bool discard);
 

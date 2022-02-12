@@ -108,6 +108,52 @@ namespace Ryujinx.Graphics.Gpu.Shader
             return MemoryMarshal.Cast<byte, ulong>(_channel.MemoryManager.GetSpan(address, size));
         }
 
+        public int QueryBindingConstantBuffer(int index)
+        {
+            return 1 + GetStageIndex() * 18 + index;
+        }
+
+        public int QueryBindingStorageBuffer(int index)
+        {
+            return GetStageIndex() * 16 + index;
+        }
+
+        public int QueryBindingTexture(int index)
+        {
+            return GetStageIndex() * 32 + index;
+        }
+
+        public int QueryBindingImage(int index)
+        {
+            return GetStageIndexForImage() * 8 + index;
+        }
+
+        private int GetStageIndex()
+        {
+            return _stageIndex switch
+            {
+                0 => 0,
+                4 => 1,
+                3 => 2,
+                1 => 3,
+                2 => 4,
+                _ => 0
+            };
+        }
+
+        private int GetStageIndexForImage()
+        {
+            return _stageIndex switch
+            {
+                0 => 1,
+                4 => 0,
+                3 => 2,
+                1 => 3,
+                2 => 4,
+                _ => 0
+            };
+        }
+
         /// <summary>
         /// Queries Local Size X for compute shaders.
         /// </summary>
